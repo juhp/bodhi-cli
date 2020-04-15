@@ -25,19 +25,24 @@ source-repository head
   location:            https://github.com/juhp/bodhi-cli.git
 
 common common-options
-  build-depends:       base >= 4.9.1.0 && < 4.14
+  build-depends:       aeson-pretty
+                     , base >= 4.9.1.0 && < 5
                      , basic-prelude
-  
+                     , bodhi
+                     , bytestring
+                     , simple-cmd-args
+                     , split
+
   mixins:              base hiding (Prelude)
                      , basic-prelude (BasicPrelude as Prelude)
-  
+
   ghc-options:         -Wall
-                       -Wcompat
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wcompat
                        -Widentities
                        -Wincomplete-uni-patterns
                        -Wincomplete-record-updates
-  if impl(ghc >= 8.0)
-    ghc-options:       -Wredundant-constraints
+                       -Wredundant-constraints
   if impl(ghc >= 8.2)
     ghc-options:       -fhide-source-paths
   if impl(ghc >= 8.4)
@@ -49,16 +54,9 @@ common common-options
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings
 
-library
-  import:              common-options
-  hs-source-dirs:      src
-  exposed-modules:     BodhiCli
-
 executable bodhi-cli
   import:              common-options
-  hs-source-dirs:      app
   main-is:             Main.hs
-  build-depends:       bodhi-cli
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N

@@ -1,1 +1,5 @@
-resolver: lts-15.5
+resolver: lts-14.27
+
+extra-deps:
+  - git: https://github.com/juhp/bodhi-hs.git
+    commit: 71dab921fd7760c1c8d86879de0629c499b14582
