@@ -3,12 +3,12 @@ module Main (main) where
 import Data.Aeson.Types
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.HashMap.Lazy as H
 import Data.List.Split
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import SimpleCmdArgs
 import Web.Fedora.Bodhi
-
 
 main :: IO ()
 main =
@@ -16,49 +16,52 @@ main =
     "This tool queries various Bodhi REST API service endpoints outputting JSON" $
     subcommands
     [ Subcommand "build" "Show build" $
-      argCmd bodhiBuild <$> keysOpt <*> strArg "NVR"
+      argCmd bodhiBuild <$> keysOpt <*> valuesOpt <*> strArg "NVR"
     , Subcommand "builds" "Search overrides by: nvr, packages, releases, updates" $
-      paramsCmd bodhiBuilds <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiBuilds <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "comment" "Show comment" $
-      argCmd bodhiComment <$> keysOpt <*> strArg "ID"
+      argCmd bodhiComment <$> keysOpt <*> valuesOpt <*> strArg "ID"
     , Subcommand "comments" "Search comments by: like, search, updates, packages, user, update_owner, ignore_user, since" $
-      paramsCmd bodhiComments <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiComments <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "override" "Show override" $
-      argCmd bodhiOverride <$> keysOpt <*> strArg "NVR"
+      argCmd bodhiOverride <$> keysOpt <*> valuesOpt <*> strArg "NVR"
     , Subcommand "overrides" "Search overrides by: like, search, builds, expired, packages, releases, user" $
-      paramsCmd bodhiOverrides <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiOverrides <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "packages" "Search packages by: like, search, name" $
-      paramsCmd bodhiPackages <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiPackages <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "release" "Show release" $
-      argCmd bodhiRelease <$> keysOpt <*> strArg "RELEASE"
+      argCmd bodhiRelease <$> keysOpt <*> valuesOpt <*> strArg "RELEASE"
     , Subcommand "releases" "Search releases by: ids, name, updates, packages, exclude_archived" $
-      paramsCmd bodhiReleases <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiReleases <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "update" "Show update" $
-      argCmd bodhiUpdate <$> keysOpt <*> strArg "UPDATE"
+      argCmd bodhiUpdate <$> keysOpt <*> valuesOpt <*> strArg "UPDATE"
     , Subcommand "updates" "Search updates by: like, search, alias, approved_since, approved_before, bugs, builds, critpath, locked, modified_since, modified_before, packages, pushed, pushed_since, pushed_before, releases, release, request, severity, status, submitted_since, submitted_before, suggest, type, content_type, user, updateid, gating" $
-      paramsCmd bodhiUpdates <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiUpdates <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "user" "Show user" $
-      argCmd bodhiUser <$> keysOpt <*> strArg "USER"
+      argCmd bodhiUser <$> keysOpt <*> valuesOpt <*> strArg "USER"
     , Subcommand "users" "Search users by: like, search, name, groups, updates, packages" $
-      paramsCmd bodhiUsers <$> keysOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiUsers <$> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     ]
   where
-    keysOpt = optional (splitOn "." <$> strOptionWith 'k' "key" "KEY[.KEY..]" "Key value to show")
+    keysOpt = switchWith 'k' "keys" "List keys of object"
 
-    argCmd cmd mkeys arg = do
+    valuesOpt = optional (splitOn "." <$> strOptionWith 'v' "value" "KEY[.KEY..]" "Key value to show")
+
+    argCmd cmd showkeys mkeys arg = do
       mres <- cmd arg
       case mres of
         Nothing -> error "Query failed"
         Just obj -> case mkeys of
-          Nothing -> (BL.putStrLn . encodePretty) obj
-          Just keys -> putKeys keys obj
+          Nothing -> if showkeys then print $ H.keys obj
+                     else (BL.putStrLn . encodePretty) obj
+          Just keys -> putKeys showkeys keys obj
 
-    paramsCmd cmd mkeys args = do
+    paramsCmd cmd showkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
       case mkeys of
-        Nothing -> mapM_ (BL.putStrLn . encodePretty) objs
-        Just keys -> mapM_ (putKeys keys) objs
+        Nothing -> mapM_ (if showkeys then print . H.keys else BL.putStrLn . encodePretty) objs
+        Just keys -> mapM_ (putKeys showkeys keys) objs
 
     readQuery [] = []
     readQuery (param:rest) =
@@ -68,17 +71,19 @@ main =
         [k,v] -> makeItem k v : readQuery rest
         _ -> error $ "Bad parameter: " ++ param
 
-    putKey k o =
+    putKey showkeys k o =
       case parseMaybe (.: (T.pack k)) o of
         Nothing -> return ()
         Just v ->
           case v of
             String t -> T.putStrLn t
+            Object obj | showkeys -> print $ H.keys obj
             _ -> BL.putStrLn (encodePretty v)
 
-    putKeys [] o = (BL.putStrLn . encodePretty) o
-    putKeys [k] o = putKey k o
-    putKeys (k:ks) o =
+    putKeys showkeys [] o = if showkeys then print $ H.keys o
+                           else (BL.putStrLn . encodePretty) o
+    putKeys showkeys [k] o = putKey showkeys k o
+    putKeys showkeys (k:ks) o =
       case parseMaybe (.: (T.pack k)) o of
         Nothing -> return ()
-        Just obj -> putKeys ks obj
+        Just obj -> putKeys showkeys ks obj

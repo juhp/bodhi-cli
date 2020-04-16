@@ -34,6 +34,7 @@ common common-options
                      , simple-cmd-args >= 0.1.6
                      , split
                      , text
+                     , unordered-containers
 
   mixins:              base hiding (Prelude)
                      , basic-prelude (BasicPrelude as Prelude)
