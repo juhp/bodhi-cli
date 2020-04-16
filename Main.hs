@@ -15,7 +15,11 @@ main =
   simpleCmdArgs Nothing "Query Bodhi REST API for json"
     "This tool queries various Bodhi REST API service endpoints outputting JSON" $
     subcommands
-    [ Subcommand "override" "Show override" $
+    [ Subcommand "build" "Show build" $
+      argCmd bodhiBuild <$> keysOpt <*> strArg "NVR"
+    , Subcommand "builds" "Search overrides" $
+      paramsCmd bodhiBuilds <$> keysOpt <*> some (strArg "KEY=VAL ...")
+    , Subcommand "override" "Show override" $
       argCmd bodhiOverride <$> keysOpt <*> strArg "NVR"
     , Subcommand "overrides" "Search overrides" $
       paramsCmd bodhiOverrides <$> keysOpt <*> some (strArg "KEY=VAL ...")
