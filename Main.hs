@@ -17,25 +17,25 @@ main =
     subcommands
     [ Subcommand "build" "Show build" $
       argCmd bodhiBuild <$> keysOpt <*> strArg "NVR"
-    , Subcommand "builds" "Search overrides" $
+    , Subcommand "builds" "Search overrides by: nvr, packages, releases, updates" $
       paramsCmd bodhiBuilds <$> keysOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "override" "Show override" $
       argCmd bodhiOverride <$> keysOpt <*> strArg "NVR"
-    , Subcommand "overrides" "Search overrides" $
+    , Subcommand "overrides" "Search overrides by: like, search, builds, expired, packages, releases, user" $
       paramsCmd bodhiOverrides <$> keysOpt <*> some (strArg "KEY=VAL ...")
-    , Subcommand "packages" "Search packages" $
+    , Subcommand "packages" "Search packages by: like, search, name" $
       paramsCmd bodhiPackages <$> keysOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "release" "Show release" $
       argCmd bodhiRelease <$> keysOpt <*> strArg "RELEASE"
-    , Subcommand "releases" "Search releases" $
+    , Subcommand "releases" "Search releases by: ids, name, updates, packages, exclude_archived" $
       paramsCmd bodhiReleases <$> keysOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "update" "Show update" $
       argCmd bodhiUpdate <$> keysOpt <*> strArg "UPDATE"
-    , Subcommand "updates" "Search updates" $
+    , Subcommand "updates" "Search updates by: like, search, alias, approved_since, approved_before, bugs, builds, critpath, locked, modified_since, modified_before, packages, pushed, pushed_since, pushed_before, releases, release, request, severity, status, submitted_since, submitted_before, suggest, type, content_type, user, updateid, gating" $
       paramsCmd bodhiUpdates <$> keysOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "user" "Show user" $
       argCmd bodhiUser <$> keysOpt <*> strArg "USER"
-    , Subcommand "users" "Search users" $
+    , Subcommand "users" "Search users by: like, search, name, groups, updates, packages" $
       paramsCmd bodhiUsers <$> keysOpt <*> some (strArg "KEY=VAL ...")
     ]
   where
