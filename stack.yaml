@@ -3,4 +3,4 @@ resolver: lts-14.27
 extra-deps:
   - simple-cmd-args-0.1.6
   - git: https://github.com/juhp/bodhi-hs.git
-    commit: 1dda2d6777d6c777341fd5fcc60b20e05a43b0fc
+    commit: 3730a50e7949c6044e3816bce731e1fe8b33067c

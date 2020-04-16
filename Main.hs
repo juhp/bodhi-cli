@@ -19,6 +19,10 @@ main =
       argCmd bodhiBuild <$> keysOpt <*> strArg "NVR"
     , Subcommand "builds" "Search overrides by: nvr, packages, releases, updates" $
       paramsCmd bodhiBuilds <$> keysOpt <*> some (strArg "KEY=VAL ...")
+    , Subcommand "comment" "Show comment" $
+      argCmd bodhiComment <$> keysOpt <*> strArg "ID"
+    , Subcommand "comments" "Search comments by: like, search, updates, packages, user, update_owner, ignore_user, since" $
+      paramsCmd bodhiComments <$> keysOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "override" "Show override" $
       argCmd bodhiOverride <$> keysOpt <*> strArg "NVR"
     , Subcommand "overrides" "Search overrides by: like, search, builds, expired, packages, releases, user" $
