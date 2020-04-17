@@ -26,7 +26,6 @@ source-repository head
 
 common common-options
   build-depends:       aeson
-                     , aeson-pretty
                      , base >= 4.9.1.0 && < 5
                      , basic-prelude
                      , bodhi
@@ -35,9 +34,7 @@ common common-options
                      , split
                      , text
                      , unordered-containers
-
-  mixins:              base hiding (Prelude)
-                     , basic-prelude (BasicPrelude as Prelude)
+                     , yaml
 
   ghc-options:         -Wall
   if impl(ghc >= 8.0)

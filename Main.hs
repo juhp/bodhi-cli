@@ -1,19 +1,19 @@
 module Main (main) where
 
 import Data.Aeson.Types
-import Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Lazy as H
 import Data.List.Split
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Data.Yaml (encode)
 import SimpleCmdArgs
 import Web.Fedora.Bodhi
 
 main :: IO ()
 main =
-  simpleCmdArgs Nothing "Query Bodhi REST API for json"
-    "This tool queries various Bodhi REST API service endpoints outputting JSON" $
+  simpleCmdArgs Nothing "Query Bodhi REST API with YAML output"
+    "This tool queries various Bodhi REST API service endpoints outputting YAML from JSON" $
     subcommands
     [ Subcommand "build" "Show build" $
       argCmd bodhiBuild <$> keysOpt <*> valuesOpt <*> strArg "NVR"
@@ -47,43 +47,64 @@ main =
 
     valuesOpt = optional (splitOn "." <$> strOptionWith 'v' "value" "KEY[.KEY..]" "Key value to show")
 
+    argCmd :: (String -> IO (Maybe Object)) -> Bool -> Maybe [String] -> String -> IO ()
     argCmd cmd showkeys mkeys arg = do
-      mres <- cmd arg
-      case mres of
+      mobj <- cmd arg
+      case mobj of
         Nothing -> error "Query failed"
-        Just obj -> case mkeys of
-          Nothing -> if showkeys then print $ H.keys obj
-                     else (BL.putStrLn . encodePretty) obj
-          Just keys -> putKeys showkeys keys obj
+        Just obj -> putObj showkeys (concat mkeys) obj
 
+--    paramsCmd :: (Query -> IO [Object]) -> Bool -> Maybe [String] -> String -> IO ()
     paramsCmd cmd showkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
-      case mkeys of
-        Nothing -> mapM_ (if showkeys then print . H.keys else BL.putStrLn . encodePretty) objs
-        Just keys -> mapM_ (putKeys showkeys keys) objs
+      mapM_ (putObj showkeys (concat mkeys)) objs
+      where
+        readQuery [] = []
+        readQuery (param:rest) =
+          case splitOn "=" param of
+            [k,_] | null k -> error $ "Bad key: " ++ param
+            [_,v] | null v -> error $ "Missing value: " ++ param
+            [k,v] -> makeItem k v : readQuery rest
+            _ -> error $ "Bad parameter: " ++ param
 
-    readQuery [] = []
-    readQuery (param:rest) =
-      case splitOn "=" param of
-        [k,_] | null k -> error $ "Bad key: " ++ param
-        [_,v] | null v -> error $ "Missing value: " ++ param
-        [k,v] -> makeItem k v : readQuery rest
-        _ -> error $ "Bad parameter: " ++ param
+    -- FIXME option to choose json instead of yaml
+    putPretty = B.putStrLn . encode
 
-    putKey showkeys k o =
-      case parseMaybe (.: (T.pack k)) o of
-        Nothing -> return ()
-        Just v ->
-          case v of
-            String t -> T.putStrLn t
-            Object obj | showkeys -> print $ H.keys obj
-            _ -> BL.putStrLn (encodePretty v)
+    putObj :: Bool -> [String] -> Object -> IO ()
+    putObj showkeys [] obj =
+      if showkeys then putObjKeys obj
+      else putPretty $ Object obj
+    putObj showkeys keys obj =
+      putKeys showkeys keys (Object obj)
 
-    putKeys showkeys [] o = if showkeys then print $ H.keys o
-                           else (BL.putStrLn . encodePretty) o
-    putKeys showkeys [k] o = putKey showkeys k o
-    putKeys showkeys (k:ks) o =
-      case parseMaybe (.: (T.pack k)) o of
-        Nothing -> return ()
-        Just obj -> putKeys showkeys ks obj
+    putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
+
+    putKeys :: Bool -> [String] -> Value -> IO ()
+    putKeys showkeys [] val =
+      case val of
+        Object obj | showkeys -> putObjKeys obj
+        _ -> putPretty val
+    putKeys showkeys [k] val = putKey showkeys k val
+    putKeys showkeys (k:ks) val =
+      case val of
+        Object obj ->
+          case parseMaybe (.: (T.pack k)) obj of
+            Nothing -> return ()
+            Just v -> putKeys showkeys ks v
+        Array arr -> mapM_ (putKeys showkeys (k:ks)) arr
+        _ -> putPretty val
+
+    putKey showkeys k val =
+      case val of
+        Object obj ->
+          case parseMaybe (.: (T.pack k)) obj of
+            Nothing -> return ()
+            Just v ->
+              case v of
+                String t -> T.putStrLn t
+                Object o | showkeys -> putObjKeys o
+                Array arr -> mapM_ (putKeys showkeys []) arr
+                _ -> putPretty v
+        Array arr -> mapM_ (putKey showkeys k) arr
+        _ -> putPretty val
