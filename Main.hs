@@ -83,26 +83,16 @@ main =
       case val of
         Object obj | listkeys -> putObjKeys obj
         _ -> putPretty json val
-    putKeys json listkeys [k] val = putKey json listkeys k val
     putKeys json listkeys (k:ks) val =
       case val of
         Object obj ->
           case parseMaybe (.: (T.pack k)) obj of
             Nothing -> return ()
-            Just v -> putKeys json listkeys ks v
-        Array arr -> mapM_ (putKeys json listkeys (k:ks)) arr
-        _ -> putPretty json val
-
-    putKey json listkeys k val =
-      case val of
-        Object obj ->
-          case parseMaybe (.: (T.pack k)) obj of
-            Nothing -> return ()
-            Just v ->
+            Just v -> if null ks then
               case v of
-                String t -> T.putStrLn t
                 Object o | listkeys -> putObjKeys o
                 Array arr -> mapM_ (putKeys json listkeys []) arr
                 _ -> putPretty json v
-        Array arr -> mapM_ (putKey json listkeys k) arr
+              else putKeys json listkeys ks v
+        Array arr -> mapM_ (putKeys json listkeys (k:ks)) arr
         _ -> putPretty json val
