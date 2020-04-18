@@ -56,13 +56,13 @@ main =
       mobj <- cmd arg
       case mobj of
         Nothing -> error "Query failed"
-        Just obj -> putKeysVal json listkeys (concat mkeys) (Object obj)
+        Just obj -> (if listkeys then putKeys else putKeysVal json) (concat mkeys) (Object obj)
 
 --    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     paramsCmd cmd json listkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
-      mapM_ (putKeysVal json listkeys (concat mkeys) . Object) objs
+      mapM_ ((if listkeys then putKeys else putKeysVal json) (concat mkeys) . Object) objs
       where
         readQuery [] = []
         readQuery (param:rest) =
@@ -76,23 +76,38 @@ main =
                      then BL.putStrLn . encodePretty
                      else B.putStrLn . encode
 
-    putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
-
-    putKeysVal :: Bool -> Bool -> [String] -> Value -> IO ()
-    putKeysVal json listkeys [] val =
-      case val of
-        Object obj | listkeys -> putObjKeys obj
-        _ -> putPretty json val
-    putKeysVal json listkeys (k:ks) val =
+    putKeysVal :: Bool -> [String] -> Value -> IO ()
+    putKeysVal json [] val = putPretty json val
+    putKeysVal json (k:ks) val =
       case val of
         Object obj ->
-          case parseMaybe (.: (T.pack k)) obj of
+          case parseMaybe (.: T.pack k) obj of
             Nothing -> return ()
             Just v -> if null ks then
               case v of
-                Object o | listkeys -> putObjKeys o
-                Array arr -> mapM_ (putKeysVal json listkeys []) arr
+                Array arr -> mapM_ (putKeysVal json []) arr
                 _ -> putPretty json v
-              else putKeysVal json listkeys ks v
-        Array arr -> mapM_ (putKeysVal json listkeys (k:ks)) arr
+              else putKeysVal json ks v
+        Array arr -> mapM_ (putKeysVal json (k:ks)) arr
         _ -> putPretty json val
+
+    putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
+
+    putKeys :: [String] -> Value -> IO ()
+    putKeys [] val =
+      case val of
+        Object obj -> putObjKeys obj
+        _ -> return ()
+    putKeys (k:ks) val =
+      case val of
+        Object obj ->
+          case parseMaybe (.: T.pack k) obj of
+            Nothing -> return ()
+            Just v -> if null ks then
+              case v of
+                Object o -> putObjKeys o
+                Array arr -> mapM_ (putKeys []) arr
+                _ -> return ()
+              else putKeys ks v
+        Array arr -> mapM_ (putKeys (k:ks)) arr
+        _ -> return ()
