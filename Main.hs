@@ -52,17 +52,17 @@ main =
     valuesOpt = optional (splitOn "." <$> strOptionWith 'v' "value" "KEY[.KEY..]" "Key value to show")
 
     argCmd :: (String -> IO (Maybe Object)) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
-    argCmd cmd json showkeys mkeys arg = do
+    argCmd cmd json listkeys mkeys arg = do
       mobj <- cmd arg
       case mobj of
         Nothing -> error "Query failed"
-        Just obj -> putObj json showkeys (concat mkeys) obj
+        Just obj -> putObj json listkeys (concat mkeys) obj
 
 --    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
-    paramsCmd cmd json showkeys mkeys args = do
+    paramsCmd cmd json listkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
-      mapM_ (putObj json showkeys (concat mkeys)) objs
+      mapM_ (putObj json listkeys (concat mkeys)) objs
       where
         readQuery [] = []
         readQuery (param:rest) =
@@ -77,30 +77,30 @@ main =
                      else B.putStrLn . encode
 
     putObj :: Bool -> Bool -> [String] -> Object -> IO ()
-    putObj json showkeys [] obj =
-      if showkeys then putObjKeys obj
+    putObj json listkeys [] obj =
+      if listkeys then putObjKeys obj
       else putPretty json $ Object obj
-    putObj json showkeys keys obj =
-      putKeys json showkeys keys (Object obj)
+    putObj json listkeys keys obj =
+      putKeys json listkeys keys (Object obj)
 
     putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
 
     putKeys :: Bool -> Bool -> [String] -> Value -> IO ()
-    putKeys json showkeys [] val =
+    putKeys json listkeys [] val =
       case val of
-        Object obj | showkeys -> putObjKeys obj
+        Object obj | listkeys -> putObjKeys obj
         _ -> putPretty json val
-    putKeys json showkeys [k] val = putKey json showkeys k val
-    putKeys json showkeys (k:ks) val =
+    putKeys json listkeys [k] val = putKey json listkeys k val
+    putKeys json listkeys (k:ks) val =
       case val of
         Object obj ->
           case parseMaybe (.: (T.pack k)) obj of
             Nothing -> return ()
-            Just v -> putKeys json showkeys ks v
-        Array arr -> mapM_ (putKeys json showkeys (k:ks)) arr
+            Just v -> putKeys json listkeys ks v
+        Array arr -> mapM_ (putKeys json listkeys (k:ks)) arr
         _ -> putPretty json val
 
-    putKey json showkeys k val =
+    putKey json listkeys k val =
       case val of
         Object obj ->
           case parseMaybe (.: (T.pack k)) obj of
@@ -108,8 +108,8 @@ main =
             Just v ->
               case v of
                 String t -> T.putStrLn t
-                Object o | showkeys -> putObjKeys o
-                Array arr -> mapM_ (putKeys json showkeys []) arr
+                Object o | listkeys -> putObjKeys o
+                Array arr -> mapM_ (putKeys json listkeys []) arr
                 _ -> putPretty json v
-        Array arr -> mapM_ (putKey json showkeys k) arr
+        Array arr -> mapM_ (putKey json listkeys k) arr
         _ -> putPretty json val
