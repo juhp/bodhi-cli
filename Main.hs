@@ -56,13 +56,13 @@ main =
       mobj <- cmd arg
       case mobj of
         Nothing -> error "Query failed"
-        Just obj -> putObj json listkeys (concat mkeys) obj
+        Just obj -> putKeys json listkeys (concat mkeys) (Object obj)
 
 --    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     paramsCmd cmd json listkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
-      mapM_ (putObj json listkeys (concat mkeys)) objs
+      mapM_ (putKeys json listkeys (concat mkeys) . Object) objs
       where
         readQuery [] = []
         readQuery (param:rest) =
@@ -75,13 +75,6 @@ main =
     putPretty json = if json
                      then BL.putStrLn . encodePretty
                      else B.putStrLn . encode
-
-    putObj :: Bool -> Bool -> [String] -> Object -> IO ()
-    putObj json listkeys [] obj =
-      if listkeys then putObjKeys obj
-      else putPretty json $ Object obj
-    putObj json listkeys keys obj =
-      putKeys json listkeys keys (Object obj)
 
     putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
 
