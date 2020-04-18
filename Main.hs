@@ -5,6 +5,7 @@ import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Lazy as H
+import Data.List
 import Data.List.Split
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -56,13 +57,19 @@ main =
       mobj <- cmd arg
       case mobj of
         Nothing -> error "Query failed"
-        Just obj -> (if listkeys then putKeys else putKeysVal json) (concat mkeys) (Object obj)
+        Just obj ->
+          if listkeys
+          then mapM_ putKeys $ filter (not . null) $ getKeys (concat mkeys) (Object obj)
+          else putKeysVal json (concat mkeys) (Object obj)
 
 --    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     paramsCmd cmd json listkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
-      mapM_ ((if listkeys then putKeys else putKeysVal json) (concat mkeys) . Object) objs
+      if listkeys then
+        mapM_ putKeys $ (filter (not . null) . nub) $ concatMap (getKeys (concat mkeys) . Object) objs
+        else
+        mapM_ (putKeysVal json (concat mkeys) . Object) objs
       where
         readQuery [] = []
         readQuery (param:rest) =
@@ -91,23 +98,23 @@ main =
         Array arr -> mapM_ (putKeysVal json (k:ks)) arr
         _ -> putPretty json val
 
-    putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
+    putKeys = T.putStrLn . T.intercalate ", "
 
-    putKeys :: [String] -> Value -> IO ()
-    putKeys [] val =
+    getKeys :: [String] -> Value -> [[T.Text]]
+    getKeys [] val =
       case val of
-        Object obj -> putObjKeys obj
-        _ -> return ()
-    putKeys (k:ks) val =
+        Object obj -> [H.keys obj]
+        _ -> []
+    getKeys (k:ks) val =
       case val of
         Object obj ->
           case parseMaybe (.: T.pack k) obj of
-            Nothing -> return ()
+            Nothing -> []
             Just v -> if null ks then
               case v of
-                Object o -> putObjKeys o
-                Array arr -> mapM_ (putKeys []) arr
-                _ -> return ()
-              else putKeys ks v
-        Array arr -> mapM_ (putKeys (k:ks)) arr
-        _ -> return ()
+                Object o -> [H.keys o]
+                Array arr -> nub $ concatMap (getKeys []) arr
+                _ -> []
+              else getKeys ks v
+        Array arr -> nub $ concatMap (getKeys (k:ks)) arr
+        _ -> []
