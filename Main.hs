@@ -56,13 +56,13 @@ main =
       mobj <- cmd arg
       case mobj of
         Nothing -> error "Query failed"
-        Just obj -> putKeys json listkeys (concat mkeys) (Object obj)
+        Just obj -> putKeysVal json listkeys (concat mkeys) (Object obj)
 
 --    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     paramsCmd cmd json listkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
-      mapM_ (putKeys json listkeys (concat mkeys) . Object) objs
+      mapM_ (putKeysVal json listkeys (concat mkeys) . Object) objs
       where
         readQuery [] = []
         readQuery (param:rest) =
@@ -78,12 +78,12 @@ main =
 
     putObjKeys = T.putStrLn . T.intercalate ", " . H.keys
 
-    putKeys :: Bool -> Bool -> [String] -> Value -> IO ()
-    putKeys json listkeys [] val =
+    putKeysVal :: Bool -> Bool -> [String] -> Value -> IO ()
+    putKeysVal json listkeys [] val =
       case val of
         Object obj | listkeys -> putObjKeys obj
         _ -> putPretty json val
-    putKeys json listkeys (k:ks) val =
+    putKeysVal json listkeys (k:ks) val =
       case val of
         Object obj ->
           case parseMaybe (.: (T.pack k)) obj of
@@ -91,8 +91,8 @@ main =
             Just v -> if null ks then
               case v of
                 Object o | listkeys -> putObjKeys o
-                Array arr -> mapM_ (putKeys json listkeys []) arr
+                Array arr -> mapM_ (putKeysVal json listkeys []) arr
                 _ -> putPretty json v
-              else putKeys json listkeys ks v
-        Array arr -> mapM_ (putKeys json listkeys (k:ks)) arr
+              else putKeysVal json listkeys ks v
+        Array arr -> mapM_ (putKeysVal json listkeys (k:ks)) arr
         _ -> putPretty json val
