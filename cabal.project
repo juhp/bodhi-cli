@@ -3,4 +3,4 @@ packages: .
 source-repository-package
     type: git
     location: https://github.com/juhp/bodhi-hs.git
-    tag: 3730a50e7949c6044e3816bce731e1fe8b33067c
+    tag: 85a64446009d2265bea07b7f5695b51e32912797

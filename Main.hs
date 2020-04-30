@@ -27,7 +27,7 @@ main =
     , Subcommand "comments" "Search comments by: like, search, updates, packages, user, update_owner, ignore_user, since" $
       paramsCmd bodhiComments <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "override" "Show override" $
-      argCmd bodhiOverride <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "NVR"
+      argCmdMaybe bodhiOverride <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "NVR"
     , Subcommand "overrides" "Search overrides by: like, search, builds, expired, packages, releases, user" $
       paramsCmd bodhiOverrides <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "packages" "Search packages by: like, search, name" $
@@ -37,7 +37,7 @@ main =
     , Subcommand "releases" "Search releases by: ids, name, updates, packages, exclude_archived" $
       paramsCmd bodhiReleases <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "update" "Show update" $
-      argCmd bodhiUpdate <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "UPDATE"
+      argCmdMaybe bodhiUpdate <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "UPDATE"
     , Subcommand "updates" "Search updates by: like, search, alias, approved_since, approved_before, bugs, builds, critpath, locked, modified_since, modified_before, packages, pushed, pushed_since, pushed_before, releases, release, request, severity, status, submitted_since, submitted_before, suggest, type, content_type, user, updateid, gating" $
       paramsCmd bodhiUpdates <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "user" "Show user" $
@@ -52,8 +52,15 @@ main =
 
     valuesOpt = optional (splitOn "." <$> strOptionWith 'v' "value" "KEY[.KEY..]" "Key value to show")
 
-    argCmd :: (String -> IO (Maybe Object)) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
+    argCmd :: (String -> IO Object) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     argCmd cmd json listkeys mkeys arg = do
+      obj <- cmd arg
+      if listkeys
+      then mapM_ putKeys $ filter (not . null) $ getKeys (concat mkeys) (Object obj)
+      else putKeysVal json (concat mkeys) (Object obj)
+
+    argCmdMaybe :: (String -> IO (Maybe Object)) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
+    argCmdMaybe cmd json listkeys mkeys arg = do
       mobj <- cmd arg
       case mobj of
         Nothing -> error "Query failed"
