@@ -11,7 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Yaml (encode)
 import SimpleCmdArgs
-import Web.Fedora.Bodhi
+import Fedora.Bodhi
 
 main :: IO ()
 main =
