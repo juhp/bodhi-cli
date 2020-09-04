@@ -56,7 +56,7 @@ main =
     argCmd cmd json listkeys mkeys arg = do
       obj <- cmd arg
       if listkeys
-      then mapM_ putKeys $ filter (not . null) $ getKeys (concat mkeys) (Object obj)
+      then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
       else putKeysVal json (concat mkeys) (Object obj)
 
     argCmdMaybe :: (String -> IO (Maybe Object)) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
@@ -66,7 +66,7 @@ main =
         Nothing -> error "Query failed"
         Just obj ->
           if listkeys
-          then mapM_ putKeys $ filter (not . null) $ getKeys (concat mkeys) (Object obj)
+          then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
           else putKeysVal json (concat mkeys) (Object obj)
 
 --    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
@@ -74,7 +74,7 @@ main =
       let params = readQuery args
       objs <- cmd params
       if listkeys then
-        mapM_ putKeys $ (filter (not . null) . nub) $ concatMap (getKeys (concat mkeys) . Object) objs
+        mapM_ putKeys . filter (not . null) . nub $ concatMap (getKeys (concat mkeys) . Object) objs
         else
         mapM_ (putKeysVal json (concat mkeys) . Object) objs
       where
@@ -105,7 +105,7 @@ main =
         Array arr -> mapM_ (putKeysVal json (k:ks)) arr
         _ -> putPretty json val
 
-    putKeys = T.putStrLn . T.intercalate ", "
+    putKeys = T.putStrLn . T.intercalate ", " . sort
 
     getKeys :: [String] -> Value -> [[T.Text]]
     getKeys [] val =
