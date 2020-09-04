@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Data.Aeson.Types
-import Data.Aeson.Encode.Pretty
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Lazy as H
