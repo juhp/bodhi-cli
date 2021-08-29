@@ -5,7 +5,7 @@ import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Lazy as H
-import Data.List
+import qualified Data.List as L
 import Data.List.Split
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -74,7 +74,7 @@ main =
       let params = readQuery args
       objs <- cmd params
       if listkeys then
-        mapM_ putKeys . filter (not . null) . nub $ concatMap (getKeys (concat mkeys) . Object) objs
+        mapM_ putKeys . filter (not . null) . L.nub $ concatMap (getKeys (concat mkeys) . Object) objs
         else
         mapM_ (putKeysVal json (concat mkeys) . Object) objs
       where
@@ -105,7 +105,7 @@ main =
         Array arr -> mapM_ (putKeysVal json (k:ks)) arr
         _ -> putPretty json val
 
-    putKeys = T.putStrLn . T.intercalate ", " . sort
+    putKeys = T.putStrLn . T.intercalate ", " . L.sort
 
     getKeys :: [String] -> Value -> [[T.Text]]
     getKeys [] val =
@@ -120,8 +120,8 @@ main =
             Just v -> if null ks then
               case v of
                 Object o -> [H.keys o]
-                Array arr -> nub $ concatMap (getKeys []) arr
+                Array arr -> L.nub $ concatMap (getKeys []) arr
                 _ -> []
               else getKeys ks v
-        Array arr -> nub $ concatMap (getKeys (k:ks)) arr
+        Array arr -> L.nub $ concatMap (getKeys (k:ks)) arr
         _ -> []
