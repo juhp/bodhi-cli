@@ -8,7 +8,7 @@ import qualified Data.Aeson.KeyMap as M
 #else
 import qualified Data.HashMap.Lazy as M
 #endif
-import Data.Aeson.Types
+import Data.Aeson.Types hiding (Parser)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Char8 as B
@@ -41,8 +41,13 @@ main =
       paramsCmd bodhiPackages <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "release" "Show release" $
       argCmd bodhiRelease <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "RELEASE"
-    , Subcommand "releases" "Search releases by: ids, name, updates, packages, exclude_archived" $
-      paramsCmd bodhiReleases <$> jsonOpt <*> keysOpt <*> valuesOpt <*> many (strArg "KEY=VAL ...")
+    , Subcommand "releases" "Search active releases by: ids, name, updates, packages" $
+      paramsCmdReleases
+      <$> jsonOpt
+      <*> keysOpt
+      <*> valuesOpt
+      <*> switchWith 'A' "archived" "include archived releases"
+      <*> many (strArg "KEY=VAL ...")
     , Subcommand "update" "Show update" $
       argCmdMaybe bodhiUpdate <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "UPDATE"
     , Subcommand "updates" "Search updates by: like, search, alias, approved_since, approved_before, bugs, builds, critpath, locked, modified_since, modified_before, packages, pushed, pushed_since, pushed_before, releases, release, request, severity, status, submitted_since, submitted_before, suggest, type, content_type, user, updateid, gating" $
@@ -86,6 +91,10 @@ main =
         mapM_ putKeys . filter (not . null) . L.nub $ concatMap (getKeys (concat mkeys) . Object) objs
         else
         mapM_ (putKeysVal json mkeys . Object) objs
+
+    paramsCmdReleases json listkeys mkeys archived args =
+      paramsCmd bodhiReleases json listkeys mkeys $
+      (if archived then id else ("exclude_archived=1" :)) args
 
     readParam :: String -> QueryItem
     readParam param =
