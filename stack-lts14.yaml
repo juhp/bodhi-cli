@@ -1,0 +1,6 @@
+resolver: lts-14.27
+
+extra-deps:
+  - simple-cmd-args-0.1.6
+  - http-query-0.1.0
+  - bodhi-0.1.0
