@@ -42,7 +42,7 @@ main =
     , Subcommand "release" "Show release" $
       argCmd bodhiRelease <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "RELEASE"
     , Subcommand "releases" "Search releases by: ids, name, updates, packages, exclude_archived" $
-      paramsCmd bodhiReleases <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
+      paramsCmd bodhiReleases <$> jsonOpt <*> keysOpt <*> valuesOpt <*> many (strArg "KEY=VAL ...")
     , Subcommand "update" "Show update" $
       argCmdMaybe bodhiUpdate <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "UPDATE"
     , Subcommand "updates" "Search updates by: like, search, alias, approved_since, approved_before, bugs, builds, critpath, locked, modified_since, modified_before, packages, pushed, pushed_since, pushed_before, releases, release, request, severity, status, submitted_since, submitted_before, suggest, type, content_type, user, updateid, gating" $
