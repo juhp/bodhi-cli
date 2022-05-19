@@ -1,10 +1,17 @@
+{-# LANGUAGE CPP #-}
+
 module Main (main) where
 
+#if MIN_VERSION_aeson(2,0,0)
+import Data.Aeson.Key
+import qualified Data.Aeson.KeyMap as M
+#else
+import qualified Data.HashMap.Lazy as M
+#endif
 import Data.Aeson.Types
 import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Char8 as B
-import qualified Data.HashMap.Lazy as H
 import qualified Data.List as L
 import Data.List.Split
 import qualified Data.Text as T
@@ -95,7 +102,7 @@ main =
     putKeysVal json (k:ks) val =
       case val of
         Object obj ->
-          case parseMaybe (.: T.pack k) obj of
+          case parseMaybe (.: fromString k) obj of
             Nothing -> return ()
             Just v -> if null ks then
               case v of
@@ -110,18 +117,23 @@ main =
     getKeys :: [String] -> Value -> [[T.Text]]
     getKeys [] val =
       case val of
-        Object obj -> [H.keys obj]
+        Object obj -> [map toText (M.keys obj)]
         _ -> []
     getKeys (k:ks) val =
       case val of
         Object obj ->
-          case parseMaybe (.: T.pack k) obj of
+          case parseMaybe (.: fromString k) obj of
             Nothing -> []
             Just v -> if null ks then
               case v of
-                Object o -> [H.keys o]
+                Object o -> [map toText (M.keys o)]
                 Array arr -> L.nub $ concatMap (getKeys []) arr
                 _ -> []
               else getKeys ks v
         Array arr -> L.nub $ concatMap (getKeys (k:ks)) arr
         _ -> []
+
+#if !MIN_VERSION_aeson(2,0,0)
+    fromString = T.pack
+    toText = id
+#endif
