@@ -80,20 +80,20 @@ main =
     paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String]
               -> [String] -> IO ()
     paramsCmd cmd json listkeys mkeys args = do
-      let params = readQuery args
+      let params = map readParam args
       objs <- cmd params
       if listkeys then
         mapM_ putKeys . filter (not . null) . L.nub $ concatMap (getKeys (concat mkeys) . Object) objs
         else
         mapM_ (putKeysVal json mkeys . Object) objs
-      where
-        readQuery [] = []
-        readQuery (param:rest) =
-          case splitOn "=" param of
-            [k,_] | null k -> error $ "Bad key: " ++ param
-            [_,v] | null v -> error $ "Missing value: " ++ param
-            [k,v] -> makeItem k v : readQuery rest
-            _ -> error $ "Bad parameter: " ++ param
+
+    readParam :: String -> QueryItem
+    readParam param =
+      case splitOn "=" param of
+        [k,_] | null k -> error $ "Bad key: " ++ param
+        [_,v] | null v -> error $ "Missing value: " ++ param
+        [k,v] -> makeItem k v
+        _ -> error $ "Bad parameter: " ++ param
 
     putPretty json keyed =
       if json
