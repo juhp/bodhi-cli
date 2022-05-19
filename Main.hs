@@ -27,7 +27,7 @@ main =
     subcommands
     [ Subcommand "build" "Show build" $
       argCmd bodhiBuild <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "NVR"
-    , Subcommand "builds" "Search overrides by: nvr, packages, releases, updates" $
+    , Subcommand "builds" "Search builds by: nvr, packages, releases, updates" $
       paramsCmd bodhiBuilds <$> jsonOpt <*> keysOpt <*> valuesOpt <*> some (strArg "KEY=VAL ...")
     , Subcommand "comment" "Show comment" $
       argCmd bodhiComment <$> jsonOpt <*> keysOpt <*> valuesOpt <*> strArg "ID"
