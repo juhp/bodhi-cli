@@ -59,12 +59,13 @@ main =
 
     valuesOpt = optional (splitOn "." <$> strOptionWith 'v' "value" "KEY[.KEY..]" "Key value to show")
 
-    argCmd :: (String -> IO Object) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
+    argCmd :: (String -> IO Object) -> Bool -> Bool -> Maybe [String] -> String
+           -> IO ()
     argCmd cmd json listkeys mkeys arg = do
       obj <- cmd arg
       if listkeys
-      then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
-      else putKeysVal json (concat mkeys) (Object obj)
+        then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
+        else putKeysVal json (concat mkeys) (Object obj)
 
     argCmdMaybe :: (String -> IO (Maybe Object)) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     argCmdMaybe cmd json listkeys mkeys arg = do
@@ -76,7 +77,8 @@ main =
           then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
           else putKeysVal json (concat mkeys) (Object obj)
 
---    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
+    paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String]
+              -> [String] -> IO ()
     paramsCmd cmd json listkeys mkeys args = do
       let params = readQuery args
       objs <- cmd params
