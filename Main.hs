@@ -65,7 +65,7 @@ main =
       obj <- cmd arg
       if listkeys
         then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
-        else putKeysVal json (concat mkeys) (Object obj)
+        else putKeysVal json mkeys (Object obj)
 
     argCmdMaybe :: (String -> IO (Maybe Object)) -> Bool -> Bool -> Maybe [String] -> String -> IO ()
     argCmdMaybe cmd json listkeys mkeys arg = do
@@ -75,7 +75,7 @@ main =
         Just obj ->
           if listkeys
           then mapM_ putKeys . filter (not . null) $ getKeys (concat mkeys) (Object obj)
-          else putKeysVal json (concat mkeys) (Object obj)
+          else putKeysVal json mkeys (Object obj)
 
     paramsCmd :: (Query -> IO [Object]) -> Bool -> Bool -> Maybe [String]
               -> [String] -> IO ()
@@ -85,7 +85,7 @@ main =
       if listkeys then
         mapM_ putKeys . filter (not . null) . L.nub $ concatMap (getKeys (concat mkeys) . Object) objs
         else
-        mapM_ (putKeysVal json (concat mkeys) . Object) objs
+        mapM_ (putKeysVal json mkeys . Object) objs
       where
         readQuery [] = []
         readQuery (param:rest) =
@@ -95,24 +95,37 @@ main =
             [k,v] -> makeItem k v : readQuery rest
             _ -> error $ "Bad parameter: " ++ param
 
-    putPretty json = if json
-                     then BL.putStrLn . encodePretty
-                     else B.putStrLn . encode
+    putPretty json keyed =
+      if json
+      then
+        (if keyed then BL.putStr else BL.putStrLn) . encodePretty
+      else
+        (if keyed then B.putStr else B.putStrLn) . encode
 
-    putKeysVal :: Bool -> [String] -> Value -> IO ()
-    putKeysVal json [] val = putPretty json val
-    putKeysVal json (k:ks) val =
-      case val of
-        Object obj ->
-          case parseMaybe (.: fromString k) obj of
-            Nothing -> return ()
-            Just v -> if null ks then
-              case v of
-                Array arr -> mapM_ (putKeysVal json []) arr
-                _ -> putPretty json v
-              else putKeysVal json ks v
-        Array arr -> mapM_ (putKeysVal json (k:ks)) arr
-        _ -> putPretty json val
+    putKeysVal :: Bool -> Maybe [String] -> Value -> IO ()
+    putKeysVal json mkeys = putKeysVal' keys
+      where
+        keys = concat mkeys
+        keyed = not (null keys)
+
+        putKeysVal' :: [String] -> Value -> IO ()
+        putKeysVal' [] v = putPretty json keyed v
+        putKeysVal' (k:ks) v =
+          case v of
+            Object obj ->
+              case parseMaybe (.: fromString k) obj of
+                Nothing -> return ()
+                Just v' ->
+                  if null ks
+                  then
+                    case v' of
+                      Array arr ->
+                        mapM_ (putKeysVal' []) arr
+                      _ -> putPretty json keyed v'
+                  else putKeysVal' ks v'
+            Array arr ->
+              mapM_ (putKeysVal' (k:ks)) arr
+            _ -> putPretty json keyed v
 
     putKeys = T.putStrLn . T.intercalate ", " . L.sort
 
